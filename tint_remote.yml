@@ -1,547 +1,193 @@
-alias: Tint-Remote total
-description: ""
-triggers:
-  - trigger: mqtt
-    topic: zigbee2mqtt/Tint-Remote
-    alias: Sobald MQTT-Topic von gewünschter Tint-Remote empfangen wurde
-conditions:
-  - alias: Aber nur, wenn Trigger einen der angegbenen Werte enthält
-    condition: template
-    value_template: >-
-      {{ trigger.payload_json.action in ('off', 'on', 'color_move',
-      'color_temperature_move', 'brightness_step_down', 'brightness_step_up',
-      'brightness_down_hold', 'brightness_down_release', 'brightness_up_hold',
-      'brightness_up_release', 'scene_3', 'scene_1', 'scene_2', 'scene_6',
-      'scene_4', 'scene_5') }}
-    enabled: true
-actions:
-  - variables:
-      group_id_0: 16387
-      group_id_1: 16388
-      group_id_2: 16389
-      group_id_3: 16390
-      stepsize: trigger.payload_json.action_step_size |int
-      light_id_0: light.deckenleuchte_kinderzimmer
-      light_id_1: null
-      light_id_2: 07b5e005cdd9adabf8602df39e061a24
-      light_id_3: light.deckenlampe_annabell
-      input_working_scene_0: []
-      input_sunset_scene_0: []
-      input_party_scene_0: []
-      input_night_scene_0: []
-      input_campfire_scene_0: []
-      input_romantic_scene_0: []
-      input_working_scene_1: []
-      input_sunset_scene_1: []
-      input_party_scene_1: []
-      input_night_scene_1: []
-      input_campfire_scene_1: []
-      input_romantic_scene_1: []
-      working_scene_2: scene.stehlampe_reading_scene
-      sunset_scene_2: scene.stehlampe_sunset_scene
-      party_scene_2: scene.stehlampe_party_scene
-      night_scene_2: scene.stehlampe_night_scene
-      campfire_scene_2: scene.stehlampe_fire_scene
-      romantic_scene_2: scene.stehlampe_romantic_scene
-      working_scene_3: scene.deckenlampe_annabell_reading_scene
-      sunset_scene_3: scene.deckenlampe_annabell_sunset_scene
-      party_scene_3: scene.deckenlampe_annabell_party_scene
-      night_scene_3: scene.deckenlampe_annabell_night_scene
-      campfire_scene_3: scene.deckenlampe_annabell_fire_scene
-      romantic_scene_3: scene.deckenlampe_annabell_romantic_scene
-    enabled: true
-    alias: Variablen definieren, die benötigt werden
-  - data:
-      level: info
-      message: >-
-        Tint Button pressed: {{ trigger.payload_json.action }} Group: {{
-        trigger.payload_json.action_group }} Length {{ input_working_scene_1 |
-        length }}
-    action: system_log.write
-    enabled: false
-  - choose:
-      - conditions:
-          - alias: Testen, ob Gruppen-ID gleich 'group_id_0'
-            condition: template
-            value_template: "{{ trigger.payload_json.action_group == group_id_0 }}"
-            enabled: true
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"on\", \"off\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'on' oder 'off'
-                sequence:
-                  - data: {}
-                    target:
-                      entity_id: "{{ light_id_0 }}"
-                    action: light.turn_{{ trigger.payload_json.action }}
-                alias: ON / OFF
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"color_move\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'color_move'
-                sequence:
-                  - data:
-                      xy_color:
-                        - "{{ trigger.payload_json.action_color.x | float }}"
-                        - "{{ trigger.payload_json.action_color.y | float }}"
-                    target:
-                      entity_id: "{{ light_id_0 }}"
-                    action: light.turn_on
-                alias: COLOR_MOVE
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{ trigger.payload_json.action in (
-                      "color_temperature_move" ) }}
-                    alias: Testen, ob Trigger-Action gleich 'color_temperatur_move'
-                sequence:
-                  - data:
-                      color_temp: >-
-                        {{ trigger.payload_json.action_color_temperature | float
-                        }}
-                    target:
-                      entity_id: "{{ light_id_0 }}"
-                    action: light.turn_on
-                alias: COLOR_TEMPERATURE_MOVE
-              - conditions:
-                  - alias: >-
-                      Testen, ob Trigger-Action gleich 'brightness_step_down'
-                      oder 'brightness_step_up'
-                    condition: template
-                    value_template: >-
-                      {{ trigger.payload_json.action in (
-                      "brightness_step_down", "brightness_step_up") }}
-                sequence:
-                  - variables:
-                      factor: >-
-                        {% if trigger.payload_json.action in (
-                        "brightness_step_down") %} -12 {% else %} 12 {% endif %}
-                  - data_template:
-                      brightness_step_pct: "{{ factor | int }}"
-                    target:
-                      entity_id: "{{ light_id_0 }}"
-                    action: light.turn_on
-                alias: BRIGHTNESS_STEP_DOWN / BRIGHTNESS_STEP_UP
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_1\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'scene_1'
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ sunset_scene_0 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ sunset_scene_0 }}"
-                    default: []
-                alias: SCENE_1
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_2'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_2\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ party_scene_0 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ party_scene_0 }}"
-                    default: []
-                alias: SCENE_2
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_3'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_3\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ working_scene_0 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ working_scene_0 }}"
-                    default: []
-                alias: SCENE_3
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_4'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_4\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ campfire_scene_0 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ campfire_scene_0 }}"
-                    default: []
-                alias: SCENE_4
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_5'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_5\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ romantic_scene_0 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ romantic_scene_0 }}"
-                    default: []
-                alias: SCENE_5
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_6\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ night_scene_0 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ night_scene_0 }}"
-                    default: []
-                alias: SCENE_6
-            default: []
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.payload_json.action_group == group_id_2 }}"
-            enabled: true
-            alias: Testen, ob Gruppen-ID gleich 'group_id_2'
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"on\", \"off\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'on' oder 'off'
-                sequence:
-                  - data: {}
-                    target:
-                      device_id: "{{ light_id_2 }}"
-                    action: light.turn_{{ trigger.payload_json.action }}
-                alias: ON / OFF
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"color_move\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'color_move'
-                sequence:
-                  - data:
-                      xy_color:
-                        - "{{ trigger.payload_json.action_color.x | float }}"
-                        - "{{ trigger.payload_json.action_color.y | float }}"
-                    target:
-                      device_id: "{{ light_id_2 }}"
-                    action: light.turn_on
-                alias: COLOR_MOVE
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{ trigger.payload_json.action in (
-                      "color_temperature_move" ) }}
-                    alias: Testen, ob Trigger-Action gleich 'color_temperatur_move'
-                sequence:
-                  - data:
-                      color_temp: >-
-                        {{ trigger.payload_json.action_color_temperature | float
-                        }}
-                    target:
-                      device_id: "{{ light_id_2 }}"
-                    action: light.turn_on
-                alias: COLOR_TEMPERATURE_MOVE
-              - conditions:
-                  - alias: >-
-                      Testen, ob Trigger-Action gleich 'brightness_step_down'
-                      oder 'brightness_step_up'
-                    condition: template
-                    value_template: >-
-                      {{ trigger.payload_json.action in (
-                      "brightness_step_down", "brightness_step_up") }}
-                sequence:
-                  - variables:
-                      factor: >-
-                        {% if trigger.payload_json.action in (
-                        "brightness_step_down") %} -12 {% else %} 12 {% endif %}
-                  - data_template:
-                      brightness_step_pct: "{{ factor | int }}"
-                    target:
-                      device_id: "{{ light_id_2 }}"
-                    action: light.turn_on
-                alias: BRIGHTNESS_STEP_DOWN / BRIGHTNESS_STEP_UP
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_1\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'scene_1'
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ sunset_scene_2 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ sunset_scene_2 }}"
-                    default: []
-                alias: SCENE_1
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_2'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_2\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ party_scene_2 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ party_scene_2 }}"
-                    default: []
-                alias: SCENE_2
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_3'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_3\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ working_scene_2 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ working_scene_2 }}"
-                    default: []
-                alias: SCENE_3
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_4'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_4\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ campfire_scene_2 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ campfire_scene_2 }}"
-                    default: []
-                alias: SCENE_4
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_5'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_5\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ romantic_scene_2 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ romantic_scene_2 }}"
-                    default: []
-                alias: SCENE_5
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_6\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ night_scene_2 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ night_scene_2 }}"
-                    default: []
-                alias: SCENE_6
-            default: []
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.payload_json.action_group == group_id_3 }}"
-            enabled: true
-            alias: Testen, ob Gruppen-ID gleich 'group_id_3'
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"on\", \"off\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'on' oder 'off'
-                sequence:
-                  - data: {}
-                    target:
-                      entity_id: "{{ light_id_3 }}"
-                    action: light.turn_{{ trigger.payload_json.action }}
-                alias: ON / OFF
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"color_move\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'color_move'
-                sequence:
-                  - data:
-                      xy_color:
-                        - "{{ trigger.payload_json.action_color.x | float }}"
-                        - "{{ trigger.payload_json.action_color.y | float }}"
-                    target:
-                      entity_id: "{{ light_id_3 }}"
-                    action: light.turn_on
-                alias: COLOR_MOVE
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{ trigger.payload_json.action in (
-                      "color_temperature_move" ) }}
-                    alias: Testen, ob Trigger-Action gleich 'color_temperatur_move'
-                sequence:
-                  - data:
-                      color_temp: >-
-                        {{ trigger.payload_json.action_color_temperature | float
-                        }}
-                    target:
-                      entity_id: "{{ light_id_3 }}"
-                    action: light.turn_on
-                alias: COLOR_TEMPERATURE_MOVE
-              - conditions:
-                  - alias: >-
-                      Testen, ob Trigger-Action gleich 'brightness_step_down'
-                      oder 'brightness_step_up'
-                    condition: template
-                    value_template: >-
-                      {{ trigger.payload_json.action in (
-                      "brightness_step_down", "brightness_step_up") }}
-                sequence:
-                  - variables:
-                      factor: >-
-                        {% if trigger.payload_json.action in (
-                        "brightness_step_down") %} -12 {% else %} 12 {% endif %}
-                  - data_template:
-                      brightness_step_pct: "{{ factor | int }}"
-                    target:
-                      entity_id: "{{ light_id_3 }}"
-                    action: light.turn_on
-                alias: BRIGHTNESS_STEP_DOWN / BRIGHTNESS_STEP_UP
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_1\" ) }}"
-                    alias: Testen, ob Trigger-Action gleich 'scene_1'
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ sunset_scene_3 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ sunset_scene_3 }}"
-                    default: []
-                alias: SCENE_1
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_2'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_2\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ party_scene_3 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ party_scene_3 }}"
-                    default: []
-                alias: SCENE_2
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_3'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_3\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ working_scene_3 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ working_scene_3 }}"
-                    default: []
-                alias: SCENE_3
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_4'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_4\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ campfire_scene_3 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ campfire_scene_3 }}"
-                    default: []
-                alias: SCENE_4
-              - conditions:
-                  - alias: Testen, ob Trigger-Action gleich 'scene_5'
-                    condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_5\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ romantic_scene_3 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ romantic_scene_3 }}"
-                    default: []
-                alias: SCENE_5
-              - conditions:
-                  - condition: template
-                    value_template: "{{ trigger.payload_json.action in ( \"scene_6\" ) }}"
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ night_scene_3 | length > 0 }}"
-                        sequence:
-                          - action: scene.turn_on
-                            metadata: {}
-                            target:
-                              entity_id: "{{ night_scene_3 }}"
-                    default: []
-                alias: SCENE_6
-            default: []
-    default: []
-    enabled: true
-mode: queued
-max: 5
+blueprint:
+  name: Muller Licht Remote
+  description: Control lights with a Muller Licht Tint RGB Remote
+  domain: automation
+  input:
+    remote:
+      name: Remote
+      description: Muller Licht Tint remote to use
+      selector:
+        device:
+          integration: zha
+          manufacturer: MLI
+          model: ZBT-Remote-ALL-RGBW
+    target_light:
+      name: Light(s)
+      description: The light(s) to control
+      selector:
+        target:
+          entity:
+            domain: light
+    colour_ref:
+      name: Colour Temperature Refence
+      description: The light to use as a colour temp reference
+      selector:
+        entity:
+          domain: light
+    working_scene:
+      name: Working Scene
+      description: The scene to be triggered when the Working Light button is pressed
+      selector:
+        entity:
+          domain: scene
+    sunset_scene:
+      name: Sunset Scene
+      description: The scene to be triggered when the Sunset button is pressed
+      selector:
+        entity:
+          domain: scene
+    party_scene:
+      name: Party Scene
+      description: The scene to be triggered when the Party button is pressed
+      selector:
+        entity:
+          domain: scene
+    night_scene:
+      name: Night Scene
+      description: The scene to be triggered when the Night button is pressed
+      selector:
+        entity:
+          domain: scene
+    campfire_scene:
+      name: Campfire Scene
+      description: The scene to be triggered when the Campfire button is pressed
+      selector:
+        entity:
+          domain: scene
+    romantic_scene:
+      name: Romantic Scene
+      description: The scene to be triggered when the Romantic button is pressed
+      selector:
+        entity:
+          domain: scene
+    force_brightness:
+      name: Force turn on brightness
+      description: Force the brightness to the set level below, when the "on" button
+        on the remote is pushed and lights turn on.
+      default: false
+      selector:
+        boolean: {}
+    brightness:
+      name: Brightness
+      description: Brightness of the light(s) when turning on
+      default: 50
+      selector:
+        number:
+          min: 0.0
+          max: 100.0
+          mode: slider
+          step: 1.0
+          unit_of_measurement: '%'
+    step_value:
+      name: Brightness increment/decrement percent
+      description: Set the step percent value for brightness and color warmth
+      default: 10
+      selector:
+        number:
+          min: 1.0
+          max: 20.0
+          mode: slider
+          step: 1.0
+          unit_of_measurement: '%'
+  source_url: https://community.home-assistant.io/t/muller-licht-tint-remote/283190
+mode: restart
 max_exceeded: silent
+variables:
+  force_brightness: !input 'force_brightness'
+  step_value: !input 'step_value'
+  colour_ref: !input 'colour_ref'
+trigger:
+- platform: event
+  event_type: zha_event
+  event_data:
+    device_id: !input 'remote'
+action:
+- variables:
+    event: '{{ trigger.event.data.cluster_id }}'
+- choose:
+  - conditions:
+    - '{{ event == 6 }}'
+    sequence:
+    - choose:
+      - conditions: '{{ force_brightness }}'
+        sequence:
+        - service: light.toggle
+          target: !input 'target_light'
+          data:
+            brightness_pct: !input 'brightness'
+      default:
+      - service: light.toggle
+        target: !input 'target_light'
+  - conditions:
+    - '{{ event == 8 }}'
+    - '{{ trigger.event.data.args==[0,43,10] }} '
+    sequence:
+    - service: light.turn_on
+      target: !input 'target_light'
+      data:
+        brightness_step_pct: '{{ step_value }}'
+        transition: 1
+  - conditions:
+    - '{{ event == 8 }}'
+    - '{{ trigger.event.data.args==[1,43,10] }}'
+    sequence:
+    - service: light.turn_on
+      target: !input 'target_light'
+      data:
+        brightness_step_pct: -{{ step_value }}
+        transition: 1
+  - conditions:
+    - '{{ trigger.event.data.command == ''move_to_color_temp'' }}'
+    sequence:
+    - service: light.turn_on
+      target: !input 'target_light'
+      data:
+        color_temp: '{{ trigger.event.data.args[0] }}'
+  - conditions:
+    - '{{ event == 5002 }}'
+    sequence:
+    - service: light.turn_on
+      target: !input 'target_light'
+      data:
+        color_temp: '{trigger.event.data.args[0] |int}}'
+  - conditions:
+    - '{{ trigger.event.data.command == ''move_to_color'' }}'
+    sequence:
+    - service: light.turn_on
+      target: !input 'target_light'
+      data:
+        xy_color: '[{{ trigger.event.data.args[0]|float/45875 }}, {{trigger.event.data.args[1]|float/45875 }}]'
+  - conditions:
+    - '{{ event == 5}}'
+    sequence:
+    - choose:
+        - conditions:
+            - '{{trigger.event.data.args.value == 3}}'
+          sequence:
+            - service: homeassistant.turn_on
+              entity_id: !input 'working_scene'
+        - conditions:
+            - '{{trigger.event.data.args.value == 1}}'
+          sequence:
+            - service: homeassistant.turn_on
+              entity_id: !input 'sunset_scene'
+        - conditions:
+            - '{{trigger.event.data.args.value == 2}}'
+          sequence:
+            - service: homeassistant.turn_on
+              entity_id: !input 'party_scene'
+        - conditions:
+            - '{{trigger.event.data.args.value == 6}}'
+          sequence:
+            - service: homeassistant.turn_on
+              entity_id: !input 'night_scene'
+        - conditions:
+            - '{{trigger.event.data.args.value == 4}}'
+          sequence:
+            - service: homeassistant.turn_on
+              entity_id: !input 'campfire_scene'
+        - conditions:
+            - '{{trigger.event.data.args.value == 5}}'
+          sequence:
+            - service: homeassistant.turn_on
+              entity_id: !input 'romantic_scene'
